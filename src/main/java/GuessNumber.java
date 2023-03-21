@@ -6,52 +6,52 @@ import java.net.http.HttpResponse;
 import java.util.Scanner;
 
 public class GuessNumber {
-
+    private final static String baseUri = "http://10.10.10.156:6666/";
     public static void main(String[] args) throws IOException, InterruptedException {
 
         Scanner scanner = new Scanner(System.in);
         HttpClient httpClient = HttpClient.newHttpClient();
-        if (startGame(httpClient)) {
-            System.out.println("Hello! I've generated a random number between 1 and 100. Please guess what?");
-        } else {
-            System.out.println("Game is already running, can not start a new one! || Server is down!");
-        }
-        new GuessNumber().userGuess(scanner, httpClient);
-
-
+        startGame(httpClient);
+        askAndCheckInput(scanner, httpClient);
         System.out.println("You have finished the game. Bye!");
     }
 
-    private void userGuess(Scanner scanner, HttpClient httpClient) throws IOException, InterruptedException {
+    private static void startGame(HttpClient httpClient) throws IOException, InterruptedException {
+        HttpResponse<String> response = game(httpClient, "start-game");
+        switch (response.statusCode()) {
+            case 200 -> System.out.println("Hello! I've generated a random number between 1 and 100. Please guess what?");
+            case 400 -> System.out.println("Error message: " + response.body());
+            case 500 -> System.out.println("Server is down, please try again later");
+        }
+    }
+
+    private static void askAndCheckInput(Scanner scanner, HttpClient httpClient) throws IOException, InterruptedException {
         while (true) {
             String input = scanner.next();
+
             if ( input.equals("exit")) {
-                endGame(httpClient);
-                return;
-            }
-            HttpResponse<String> httpResponse = checkGuess(httpClient, input);
-            if (responseControl(httpResponse)) {
-                if (endGame(httpClient)) {
-                    return;
+                HttpResponse<String> response = game(httpClient, "end-game");
+                if (response.statusCode() == 400) {
+                    System.out.println("Error message: " + response.body());
                 } else {
-                    System.out.println("The game is not active");
+                    return;
+                }
+            }
+
+            HttpResponse<String> httpResponse = checkGuess(httpClient, input);
+
+            if (responseControl(httpResponse)) {
+                HttpResponse<String> response = game(httpClient, "end-game");
+                if (response.statusCode() == 400) {
+                    System.out.println("Error message: " + response.body());
+                } else {
+                    return;
                 }
             }
         }
     }
 
-    private boolean endGame(HttpClient httpClient) throws IOException, InterruptedException {
-        URI HTTP_SERVER_URI = URI.create("http://10.10.10.156:6666/end-game");
-        HttpRequest request = HttpRequest.newBuilder()
-                .GET()
-                .uri(HTTP_SERVER_URI)
-                .build();
-
-        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-        return response.statusCode() == 200;
-    }
-
-    private HttpResponse<String> checkGuess(HttpClient httpClient, String userGuess) throws IOException, InterruptedException {
+    private static HttpResponse<String> checkGuess(HttpClient httpClient, String userGuess) throws IOException, InterruptedException {
         URI HTTP_SERVER_URI = URI.create("http://10.10.10.156:6666/guess");
         HttpRequest.BodyPublisher bodyPublisher = HttpRequest.BodyPublishers.ofString(userGuess);
         HttpRequest request = HttpRequest.newBuilder()
@@ -62,18 +62,17 @@ public class GuessNumber {
         return httpClient.send(request, HttpResponse.BodyHandlers.ofString());
     }
 
-    private static boolean startGame(HttpClient httpClient) throws IOException, InterruptedException {
-        URI HTTP_SERVER_URI = URI.create("http://10.10.10.156:6666/start-game");
+    private static HttpResponse<String> game(HttpClient httpClient, String uri) throws IOException, InterruptedException {
+        URI HTTP_SERVER_URI = URI.create(baseUri + uri);
         HttpRequest request = HttpRequest.newBuilder()
                 .GET()
                 .uri(HTTP_SERVER_URI)
                 .build();
 
-        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-        return response.statusCode() == 200;
+        return httpClient.send(request, HttpResponse.BodyHandlers.ofString());
     }
 
-    private boolean responseControl(HttpResponse response) {
+    private static boolean responseControl(HttpResponse response) {
         if (response.statusCode() == 200) {
 
             switch (response.body().toString()) {

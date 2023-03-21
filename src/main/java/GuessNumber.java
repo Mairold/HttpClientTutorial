@@ -7,19 +7,19 @@ import java.util.Scanner;
 
 public class GuessNumber {
     private final static String baseUri = "http://10.10.10.156:6666/";
+    private static final HttpClient httpClient = HttpClient.newHttpClient();
 
     public static void main(String[] args) throws IOException, InterruptedException {
         Scanner scanner = new Scanner(System.in);
-        HttpClient httpClient = HttpClient.newHttpClient();
 
-        startGame(httpClient);
-        askAndCheckInput(scanner, httpClient);
+        startGame();
+        askAndCheckInput(scanner);
 
         System.out.println("You have finished the game. Bye!");
     }
 
-    private static void startGame(HttpClient httpClient) throws IOException, InterruptedException {
-        HttpResponse<String> response = game(httpClient, "start-game");
+    private static void startGame() throws IOException, InterruptedException {
+        HttpResponse<String> response = sendRequest("start-game", "");
         statusCodeCheck(response, "Hello! I've generated a random number between 1 and 100. Please guess what?");
     }
 
@@ -31,41 +31,31 @@ public class GuessNumber {
         }
     }
 
-    private static void askAndCheckInput(Scanner scanner, HttpClient httpClient) throws IOException, InterruptedException {
+    private static void askAndCheckInput(Scanner scanner) throws IOException, InterruptedException {
         while (true) {
             String input = scanner.next();
 
             if (input.equals("exit")) {
-                HttpResponse<String> response = game(httpClient, "end-game");
+                HttpResponse<String> response = sendRequest("end-game", "");
                 statusCodeCheck(response, "");
                 return;
             }
 
-            HttpResponse<String> httpResponse = checkGuess(httpClient, input);
+            HttpResponse<String> httpResponse = sendRequest("guess", input);
 
             if (responseControl(httpResponse)) {
-                HttpResponse<String> response = game(httpClient, "end-game");
+                HttpResponse<String> response = sendRequest("end-game", "");
                 statusCodeCheck(response, "");
                 return;
             }
         }
     }
 
-    private static HttpResponse<String> checkGuess(HttpClient httpClient, String userGuess) throws IOException, InterruptedException {
-        URI HTTP_SERVER_URI = URI.create("http://10.10.10.156:6666/guess");
-        HttpRequest.BodyPublisher bodyPublisher = HttpRequest.BodyPublishers.ofString(userGuess);
+    private static HttpResponse<String> sendRequest(String uri, String bodyMessage) throws IOException, InterruptedException {
+        URI HTTP_SERVER_URI = URI.create(baseUri + uri);
+        HttpRequest.BodyPublisher bodyPublisher = HttpRequest.BodyPublishers.ofString(bodyMessage);
         HttpRequest request = HttpRequest.newBuilder()
                 .POST(bodyPublisher)
-                .uri(HTTP_SERVER_URI)
-                .build();
-
-        return httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-    }
-
-    private static HttpResponse<String> game(HttpClient httpClient, String uri) throws IOException, InterruptedException {
-        URI HTTP_SERVER_URI = URI.create(baseUri + uri);
-        HttpRequest request = HttpRequest.newBuilder()
-                .GET()
                 .uri(HTTP_SERVER_URI)
                 .build();
 
@@ -84,7 +74,7 @@ public class GuessNumber {
                 case "LESS" -> System.out.println("The number is smaller than you guessed. Please try again!");
             }
         } else {
-            System.out.println(response.body().toString());
+            System.out.println("Error message: " + response.body() + " Please try again!");
         }
         return false;
     }

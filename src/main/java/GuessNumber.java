@@ -3,6 +3,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.Objects;
 import java.util.Scanner;
 
 public class GuessNumber {
@@ -25,7 +26,7 @@ public class GuessNumber {
 
     private static void statusCodeCheck(HttpResponse<String> response, String message) {
         switch (response.statusCode()) {
-            case 200 -> System.out.println(message);
+            case 200 -> {if (!Objects.equals(message, "")) {System.out.println(message);}}
             case 400 -> System.out.println("Error message: " + response.body());
             case 500 -> System.out.println("Server is down, please try again later");
         }
@@ -40,14 +41,8 @@ public class GuessNumber {
                 statusCodeCheck(response, "");
                 return;
             }
-
             HttpResponse<String> httpResponse = sendRequest("guess", input);
-
-            if (responseControl(httpResponse)) {
-                HttpResponse<String> response = sendRequest("end-game", "");
-                statusCodeCheck(response, "");
-                return;
-            }
+            if (responseControl(httpResponse)) { return; }
         }
     }
 
@@ -70,8 +65,8 @@ public class GuessNumber {
                     System.out.println("Wow! You are a genius! Correct answer!");
                     return true;
                 }
-                case "BIGGER" -> System.out.println("The number is bigger than you guessed. Please try again!");
-                case "LESS" -> System.out.println("The number is smaller than you guessed. Please try again!");
+                case "LESS" -> System.out.println("The number is bigger than you guessed. Please try again!");
+                case "BIGGER" -> System.out.println("The number is smaller than you guessed. Please try again!");
             }
         } else {
             System.out.println("Error message: " + response.body() + " Please try again!");

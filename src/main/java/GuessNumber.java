@@ -18,15 +18,20 @@ public class GuessNumber {
             startGame();
             askAndCheckInput(scanner);
             System.out.println("The game has ended! Do you wish to play again (Y,N)?");
-            if ("N".equalsIgnoreCase(scanner.next())) {
+            String input = scanner.next();
+            if (showStatistics(input)) {
+                System.out.println("Do you still wish to play again (Y,N)?");
+                input = scanner.next();
+            }
+            if ("N".equalsIgnoreCase(input)) {
                 playAgain = false;
             }
-        } while (!playAgain);
+        } while (playAgain);
         System.out.println("Thank you, come again!");
     }
 
     private static void startGame() throws IOException, InterruptedException {
-        HttpResponse<String> response = sendRequest("start-game", "");
+        HttpResponse<String> response = postRequest("start-game", "");
         statusCodeCheck(response, "Hello! I've generated a random number between 1 and 100. Please guess what?");
     }
 
@@ -46,23 +51,47 @@ public class GuessNumber {
         while (true) {
             String input = scanner.next();
 
-            if (input.equals("exit")) {
-                HttpResponse<String> response = sendRequest("end-game", "");
-                statusCodeCheck(response, "");
-                return;
-            }
-            HttpResponse<String> httpResponse = sendRequest("guess", input);
-            if (responseControl(httpResponse)) {
-                return;
-            }
+            if (exit(input)) return;
+            if (showStatistics(input)) continue;
+
+            HttpResponse<String> httpResponse = postRequest("guess", input);
+            if (responseControl(httpResponse)) return;
         }
     }
 
-    private static HttpResponse<String> sendRequest(String uri, String bodyMessage) throws IOException, InterruptedException {
+    private static boolean exit(String input) throws IOException, InterruptedException {
+        if (("exit").equals(input)) {
+            HttpResponse<String> response = postRequest("end-game", "");
+            statusCodeCheck(response, "");
+            return true;
+        }
+        return false;
+    }
+
+    private static boolean showStatistics(String input) throws IOException, InterruptedException {
+        if (("stats").equals(input)) {
+            HttpResponse<String> response = getRequest("stats", "");
+            statusCodeCheck(response, response.body());
+            return true;
+        }
+        return false;
+    }
+
+    private static HttpResponse<String> postRequest(String uri, String bodyMessage) throws IOException, InterruptedException {
         URI HTTP_SERVER_URI = URI.create(baseUri + uri);
         HttpRequest.BodyPublisher bodyPublisher = HttpRequest.BodyPublishers.ofString(bodyMessage);
         HttpRequest request = HttpRequest.newBuilder()
                 .POST(bodyPublisher)
+                .uri(HTTP_SERVER_URI)
+                .build();
+
+        return httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+    }
+
+    private static HttpResponse<String> getRequest(String uri, String bodyMessage) throws IOException, InterruptedException {
+        URI HTTP_SERVER_URI = URI.create(baseUri + uri);
+        HttpRequest request = HttpRequest.newBuilder()
+                .GET()
                 .uri(HTTP_SERVER_URI)
                 .build();
 

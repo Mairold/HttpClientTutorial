@@ -13,11 +13,16 @@ public class GuessNumber {
     public static void main(String[] args) throws IOException, InterruptedException {
         baseUri = args.length > 0 ? args[0] : "http://10.10.10.156:6666/";
         Scanner scanner = new Scanner(System.in);
-
-        startGame();
-        askAndCheckInput(scanner);
-
-        System.out.println("You have finished the game. Bye!");
+        boolean playAgain = true;
+        do {
+            startGame();
+            askAndCheckInput(scanner);
+            System.out.println("The game has ended! Do you wish to play again (Y,N)?");
+            if ("N".equalsIgnoreCase(scanner.next())) {
+                playAgain = false;
+            }
+        } while (!playAgain);
+        System.out.println("Thank you, come again!");
     }
 
     private static void startGame() throws IOException, InterruptedException {
@@ -27,7 +32,11 @@ public class GuessNumber {
 
     private static void statusCodeCheck(HttpResponse<String> response, String message) {
         switch (response.statusCode()) {
-            case 200 -> {if (!Objects.equals(message, "")) {System.out.println(message);}}
+            case 200 -> {
+                if (!Objects.equals(message, "")) {
+                    System.out.println(message);
+                }
+            }
             case 400 -> System.out.println("Error message: " + response.body());
             case 500 -> System.out.println("Server is down, please try again later");
         }
@@ -43,7 +52,9 @@ public class GuessNumber {
                 return;
             }
             HttpResponse<String> httpResponse = sendRequest("guess", input);
-            if (responseControl(httpResponse)) { return; }
+            if (responseControl(httpResponse)) {
+                return;
+            }
         }
     }
 

@@ -7,10 +7,11 @@ import java.util.Objects;
 import java.util.Scanner;
 
 public class GuessNumber {
-    private final static String baseUri = "http://10.10.10.156:6666/";
+    private static String baseUri;
     private static final HttpClient httpClient = HttpClient.newHttpClient();
 
     public static void main(String[] args) throws IOException, InterruptedException {
+        baseUri = args.length > 0 ? args[0] : "http://10.10.10.156:6666/";
         Scanner scanner = new Scanner(System.in);
 
         startGame();

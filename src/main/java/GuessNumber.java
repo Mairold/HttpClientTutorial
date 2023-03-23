@@ -17,6 +17,7 @@ public class GuessNumber {
         do {
             startGame();
             askAndCheckInput(scanner);
+
             System.out.println("The game has ended! Do you wish to play again (Y,N)?");
             String input = scanner.next();
             if (showStatistics(input)) {
@@ -25,10 +26,8 @@ public class GuessNumber {
             }
             if ("N".equalsIgnoreCase(input)) {
                 playAgain = false;
-                exit();
             }
         } while (playAgain);
-
         System.out.println("Thank you, come again!");
     }
 
@@ -53,17 +52,24 @@ public class GuessNumber {
         while (true) {
             String input = scanner.next();
 
-            if ("exit".equalsIgnoreCase(input)) return;
-            if (showStatistics(input)) continue;
+            if (exit(input)) return;
+            if (showStatistics(input)) {
+                System.out.println("Please continue guessing!");
+                continue;
+            }
 
             HttpResponse<String> httpResponse = postRequest("guess", input);
             if (responseControl(httpResponse)) return;
         }
     }
 
-    private static void exit() throws IOException, InterruptedException {
+    private static boolean exit(String input) throws IOException, InterruptedException {
+        if (("exit").equals(input)) {
             HttpResponse<String> response = postRequest("end-game", "");
             statusCodeCheck(response, "");
+            return true;
+        }
+        return false;
     }
 
     private static boolean showStatistics(String input) throws IOException, InterruptedException {
@@ -82,7 +88,6 @@ public class GuessNumber {
                 .POST(bodyPublisher)
                 .uri(HTTP_SERVER_URI)
                 .build();
-
         return httpClient.send(request, HttpResponse.BodyHandlers.ofString());
     }
 
@@ -92,7 +97,6 @@ public class GuessNumber {
                 .GET()
                 .uri(HTTP_SERVER_URI)
                 .build();
-
         return httpClient.send(request, HttpResponse.BodyHandlers.ofString());
     }
 

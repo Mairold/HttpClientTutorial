@@ -5,10 +5,12 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.Objects;
 import java.util.Scanner;
+import java.util.SplittableRandom;
 
 public class GuessNumber {
     private static String baseUri;
     private static final HttpClient httpClient = HttpClient.newHttpClient();
+    private static Integer sessionKey = 0;
 
     public static void main(String[] args) throws IOException, InterruptedException {
         baseUri = args.length > 0 ? args[0] : "http://10.10.10.156:6666/";
@@ -34,6 +36,11 @@ public class GuessNumber {
 
     private static void startGame() throws IOException, InterruptedException {
         HttpResponse<String> response = postRequest("start-game", "");
+        try {
+            sessionKey = Integer.parseInt(response.body().split(":")[1]);
+        } catch (NumberFormatException e) {
+            System.out.println("Game has crashed on server, please restart!");
+        }
         statusCodeCheck(response, "Hello! I've generated a random number between 1 and 100. Please guess what?");
     }
 
@@ -62,8 +69,8 @@ public class GuessNumber {
     }
 
     private static void exit() throws IOException, InterruptedException {
-            HttpResponse<String> response = postRequest("end-game", "");
-            statusCodeCheck(response, "");
+        HttpResponse<String> response = postRequest("end-game", "");
+        statusCodeCheck(response, "");
     }
 
     private static boolean showStatistics(String input) throws IOException, InterruptedException {
@@ -76,18 +83,18 @@ public class GuessNumber {
     }
 
     private static HttpResponse<String> postRequest(String uri, String bodyMessage) throws IOException, InterruptedException {
-        URI HTTP_SERVER_URI = URI.create(baseUri + uri);
+        String finalUri = sessionKey.equals(null) ? baseUri + uri : baseUri + uri + "?session=" + sessionKey;
         HttpRequest.BodyPublisher bodyPublisher = HttpRequest.BodyPublishers.ofString(bodyMessage);
         HttpRequest request = HttpRequest.newBuilder()
                 .POST(bodyPublisher)
-                .uri(HTTP_SERVER_URI)
+                .uri(URI.create(finalUri))
                 .build();
 
         return httpClient.send(request, HttpResponse.BodyHandlers.ofString());
     }
 
     private static HttpResponse<String> getRequest(String uri) throws IOException, InterruptedException {
-        URI HTTP_SERVER_URI = URI.create(baseUri + uri);
+        URI HTTP_SERVER_URI = URI.create(baseUri + uri + "?session=" + sessionKey);
         HttpRequest request = HttpRequest.newBuilder()
                 .GET()
                 .uri(HTTP_SERVER_URI)

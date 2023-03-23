@@ -25,8 +25,10 @@ public class GuessNumber {
             }
             if ("N".equalsIgnoreCase(input)) {
                 playAgain = false;
+                exit();
             }
         } while (playAgain);
+
         System.out.println("Thank you, come again!");
     }
 
@@ -51,7 +53,7 @@ public class GuessNumber {
         while (true) {
             String input = scanner.next();
 
-            if (exit(input)) return;
+            if ("exit".equalsIgnoreCase(input)) return;
             if (showStatistics(input)) continue;
 
             HttpResponse<String> httpResponse = postRequest("guess", input);
@@ -59,18 +61,14 @@ public class GuessNumber {
         }
     }
 
-    private static boolean exit(String input) throws IOException, InterruptedException {
-        if (("exit").equals(input)) {
+    private static void exit() throws IOException, InterruptedException {
             HttpResponse<String> response = postRequest("end-game", "");
             statusCodeCheck(response, "");
-            return true;
-        }
-        return false;
     }
 
     private static boolean showStatistics(String input) throws IOException, InterruptedException {
         if (("stats").equals(input)) {
-            HttpResponse<String> response = getRequest("stats", "");
+            HttpResponse<String> response = getRequest("stats");
             statusCodeCheck(response, response.body());
             return true;
         }
@@ -88,7 +86,7 @@ public class GuessNumber {
         return httpClient.send(request, HttpResponse.BodyHandlers.ofString());
     }
 
-    private static HttpResponse<String> getRequest(String uri, String bodyMessage) throws IOException, InterruptedException {
+    private static HttpResponse<String> getRequest(String uri) throws IOException, InterruptedException {
         URI HTTP_SERVER_URI = URI.create(baseUri + uri);
         HttpRequest request = HttpRequest.newBuilder()
                 .GET()

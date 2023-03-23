@@ -5,12 +5,11 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.Objects;
 import java.util.Scanner;
-import java.util.SplittableRandom;
 
 public class GuessNumber {
     private static String baseUri;
     private static final HttpClient httpClient = HttpClient.newHttpClient();
-    private static Integer sessionKey = 0;
+    private static Integer sessionKey = null;
 
     public static void main(String[] args) throws IOException, InterruptedException {
         baseUri = args.length > 0 ? args[0] : "http://10.10.10.156:6666/";
@@ -83,7 +82,7 @@ public class GuessNumber {
     }
 
     private static HttpResponse<String> postRequest(String uri, String bodyMessage) throws IOException, InterruptedException {
-        String finalUri = sessionKey.equals(null) ? baseUri + uri : baseUri + uri + "?session=" + sessionKey;
+        String finalUri = sessionKey == null ? baseUri + uri : baseUri + uri + "?session=" + sessionKey;
         HttpRequest.BodyPublisher bodyPublisher = HttpRequest.BodyPublishers.ofString(bodyMessage);
         HttpRequest request = HttpRequest.newBuilder()
                 .POST(bodyPublisher)
